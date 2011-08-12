@@ -149,15 +149,13 @@ conff.write(hostmounts +
             "mount proc /proc proc\n" +
             "mount sysfs /sys sysfs\n" +
             "timeout " + str(timeout) + "\n" +
-            "run " + cwd + " " + " ".join(cmd) + "\n")
+            "run " + cwd + " " + " ".join(cmd) + " | cat\n")
 conff.close()
 
 os.dup2(1, 3) # To keep output
-devnullr = os.open("/dev/null", os.O_RDONLY)
 devnullw = os.open("/dev/null", os.O_WRONLY)
 
 subprocess.call([linux, "ubda=" + conf, "mem=" + memory, "con1=" + childStdin + ",fd:3", "con=null,null"], stdout=devnullw, stderr=devnullw)
-os.close(devnullr)
 os.close(devnullw)
 os.close(3)
 

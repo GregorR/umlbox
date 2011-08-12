@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <termios.h>
 #include <unistd.h>
 
 #include <linux/reboot.h>
@@ -56,6 +57,7 @@ int main()
     char *buf, *line, *word, *lsaveptr, *wsaveptr;
     size_t bufsz, bufused;
     ssize_t rd;
+    struct termios termios_p;
 
     srandom(time(NULL));
 
@@ -71,6 +73,11 @@ int main()
     mknod("/tty1", 0644 | S_IFCHR, makedev(4, 1));
     childI = open("/tty1", O_RDONLY);
     childO = open("/tty1", O_WRONLY);
+
+    /* make the TTY raw */
+    SF(tmpi, tcgetattr, -1, (childO, &termios_p));
+    cfmakeraw(&termios_p);
+    SF(tmpi, tcsetattr, -1, (childO, TCSANOW, &termios_p));
 
     printf("\n----------\nUMLBox starting.\n----------\n\n");
 
