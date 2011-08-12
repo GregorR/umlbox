@@ -49,8 +49,9 @@ void crash();
 
 unsigned int timeout = 0;
 int childI = 0, childO = 1;
+uid_t childUID = 0, childGID = 0;
 
-int main()
+int main(int argc, char **argv)
 {
     int tmpi, i, o;
     int ubda;
@@ -60,6 +61,16 @@ int main()
     struct termios termios_p;
 
     srandom(time(NULL));
+
+    /* figure out the child's UID and GID */
+    if (argc > 1)
+        childUID = atoi(argv[1]);
+    if (childUID == 0)
+        childUID = random() % 995000 + 5000;
+    if (argc > 2)
+        childGID = atoi(argv[2]);
+    if (childGID == 0)
+        childGID = random() % 995000 + 5000;
 
     /* try to get console */
     mknod("/console", 0644 | S_IFCHR, makedev(5, 1));
@@ -74,10 +85,12 @@ int main()
     childI = open("/tty1", O_RDONLY);
     childO = open("/tty1", O_WRONLY);
 
-    /* make the TTY raw */
-    SF(tmpi, tcgetattr, -1, (childO, &termios_p));
-    cfmakeraw(&termios_p);
-    SF(tmpi, tcsetattr, -1, (childO, TCSANOW, &termios_p));
+    /* make the TTY raw if it's supposed to be (argv[3] == isatty) */
+    if (argc > 3 && !strcmp(argv[3], "0")) {
+        SF(tmpi, tcgetattr, -1, (childO, &termios_p));
+        cfmakeraw(&termios_p);
+        SF(tmpi, tcsetattr, -1, (childO, TCSANOW, &termios_p));
+    }
 
     printf("\n----------\nUMLBox starting.\n----------\n\n");
 
@@ -161,18 +174,6 @@ void mkdirP(char *dir)
     }
     free(tdir);
     SF(tmpi, chdir, -1, ("/"));
-}
-
-void randuid()
-{
-    int tmpi;
-    SF(tmpi, setuid, -1, (random() % 995000 + 5000));
-}
-
-void randgid()
-{
-    int tmpi;
-    SF(tmpi, setgid, -1, (random() % 995000 + 5000));
 }
 
 void handleMount(char **saveptr)
@@ -260,8 +261,8 @@ void handleRun(char **saveptr)
         chdir(dir);
 
         /* randomize GID/UID */
-        randgid();
-        randuid();
+        SF(tmpi, setgid, -1, (childGID));
+        SF(tmpi, setuid, -1, (childUID));
 
         /* and run */
         SF(tmpi, system, -1, (cmd));
