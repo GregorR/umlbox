@@ -39,6 +39,9 @@ def baseMounts():
 # child's cwd
 cwd = os.getcwd()
 
+# where to get stdin from
+childStdin = "fd:0"
+
 # (optional) timeout
 timeout = 0
 
@@ -54,6 +57,7 @@ def usage():
           "\t--cwd <dir>: Set cwd in guest to <dir>.\n" +
           "\t--no-cwd: Set cwd in guest to /.\n" +
           "\t--copy-cwd: Copy the host cwd (the default).\n" +
+          "\t-n: Detach from stdin (< /dev/null will not work!).\n" +
           "\t-T <timeout>: Set a timeout.\n" +
           "\t-m <memory>: Set the memory limit (default 256M).\n")
 
@@ -102,6 +106,9 @@ while i < len(sys.argv):
     elif arg == "--copy-cwd":
         cwd = os.getcwd()
 
+    elif arg == "-n" or arg == "--no-stdin":
+        childStdin = "null"
+
     elif arg == "-T" or arg == "--timeout":
         i += 1
         timeout = int(sys.argv[i])
@@ -146,11 +153,10 @@ conff.write(hostmounts +
 conff.close()
 
 os.dup2(1, 3) # To keep output
-os.dup2(1, 4)
 devnullr = os.open("/dev/null", os.O_RDONLY)
 devnullw = os.open("/dev/null", os.O_WRONLY)
 
-subprocess.call([linux, "ubda=" + conf, "mem=" + memory, "con1=fd:0,fd:3", "con=null,null"], stdout=devnullw, stderr=devnullw)
+subprocess.call([linux, "ubda=" + conf, "mem=" + memory, "con1=" + childStdin + ",fd:3", "con=null,null"], stdout=devnullw, stderr=devnullw)
 os.close(devnullr)
 os.close(devnullw)
 os.close(3)
