@@ -18,7 +18,7 @@ class Mount:
 
 # the basic, predefined mounts
 def baseMounts():
-    for m in ["/usr", "/bin", "/lib", "/lib32", "/lib64", "/etc/alternatives"]:
+    for m in ["/usr", "/bin", "/lib", "/lib32", "/lib64", "/etc/alternatives", "/dev"]:
         if os.path.isdir(m):
             mounts[m] = Mount("r", m, m)
 
@@ -109,9 +109,7 @@ if len(cmd) == 0:
 # globals
 linux = os.path.dirname(sys.argv[0]) + "/umlbox-linux"
 pid = str(os.getpid())
-tmpdir = "/tmp/" + pid + ".tmp"
 conf = "/tmp/" + pid + ".conf"
-os.makedirs(tmpdir)
 
 # figure out the hostmount configuration
 mountPaths = mounts.keys()
@@ -126,7 +124,7 @@ for path in mountPaths:
 # Make the configuration file
 conff = open(conf, "w")
 conff.write(hostmounts +
-            "hostmount rw " + tmpdir + " /tmp\n" +
+            "mount tmpfs /tmp tmpfs\n" +
             "mount proc /proc proc\n" +
             "mount sysfs /sys sysfs\n" +
             "timeout " + str(timeout) + "\n" +
@@ -143,5 +141,4 @@ os.close(devnullr)
 os.close(devnullw)
 os.close(3)
 
-shutil.rmtree(tmpdir)
 os.unlink(conf)
