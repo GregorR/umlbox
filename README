@@ -1,0 +1,5 @@
+umlbox is a UML-based (UserMode Linux-based) solution for sandboxing
+applications.
+
+To build it, you must first extract Linux into a subdirectory, e.g.
+umlbox/linux-3.0.1. The Makefile indicates which version of Linux is required.
