@@ -22,17 +22,17 @@ umlbox-linux: $(LINUX)/linux
 
 $(LINUX)/linux: $(LINUX)/.config
 	-strip umlboxinit/init
-	cd $(LINUX) ; $(MAKE) ARCH=um
+	cd $(LINUX) && $(MAKE) ARCH=um
 
 $(LINUX)/.config: umlbox-config
 	cp -f umlbox-config $(LINUX)/.config
 
 clean:
 	rm -f umlbox-linux init umlbox-initrd.gz
-	-cd $(LINUX) ; $(MAKE) ARCH=um clean
+	-cd $(LINUX) && $(MAKE) ARCH=um clean
 
 mrproper: clean
-	-cd $(LINUX) ; $(MAKE) ARCH=um mrproper
+	-cd $(LINUX) && $(MAKE) ARCH=um mrproper
 
 install:
 	install -D umlbox $(DESTDIR)$(PREFIX)/bin/umlbox
