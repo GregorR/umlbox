@@ -3,6 +3,7 @@ CFLAGS=-O3
 LDFLAGS=
 STATICFLAGS=-static
 LINUX=linux-3.0.1
+DESTDIR=
 PREFIX=/usr
 
 all: nokernel umlbox-linux
@@ -34,6 +35,6 @@ mrproper: clean
 	-cd $(LINUX) ; $(MAKE) ARCH=um mrproper
 
 install:
-	install -D umlbox $(PREFIX)/bin/umlbox
-	install -D -m 0644 umlbox-initrd.gz $(PREFIX)/lib/umlbox/umlbox-initrd.gz
-	-install -D umlbox-linux $(PREFIX)/bin/umlbox-linux
+	install -D umlbox $(DESTDIR)$(PREFIX)/bin/umlbox
+	install -D -m 0644 umlbox-initrd.gz $(DESTDIR)$(PREFIX)/lib/umlbox/umlbox-initrd.gz
+	-install -D umlbox-linux $(DESTDIR)$(PREFIX)/bin/umlbox-linux
