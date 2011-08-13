@@ -1,0 +1,77 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH UMLBOX 1 "August 13, 2011"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+umlbox \- Sandbox a program in a UML instance
+.SH SYNOPSIS
+.B umlbox
+[\fIoptions\fR] \fIcommand\fR...
+.SH DESCRIPTION
+\fBumlbox\fP runs a command sandboxed in a Usermode Linux kernel instance. The
+guest program cannot access any part of the filesystem which it has not been
+given explicit access to, cannot send signals to host processes, cannot access
+the network, and cannot perform interprocess communication. Furthermore, it has
+a strict memory limit, and may also have a time limit.
+.SH OPTIONS
+.TP
+.B \-B, \-\-base\-mounts
+Allow the program to see /usr, /bin, /lib, and other vital directories.
+.TP
+.B \-f, \-\-mount \fIpath\fR:
+Allow the program to read from the given path.
+.TP
+.B \-fw, \-\-mount\-write \fIpath\fR:
+Allow the program to read from and write to the given path.
+.TP
+.B \-t, \-\-translate \fIguest host\fR:
+Allow the program to read from the given host path, but presented at a
+different path on the guest.
+.TP
+.B \-tw, \-\-translate\-write \fIguest host\fR:
+Allow the program to read and write from the given host path, but presented at
+a different path on the guest.
+.TP
+.B \-\-cwd \fIdirectory\fR:
+Run the program with the given current working directory.
+.TP
+.B \-\-no\-cwd:
+Run the program with / as the current working directory.
+.TP
+.B \-\-copy\-cwd:
+Run the program with the same current working directory as \fBumlbox\fP is
+called with.
+.TP
+.B \-n, \-\-no\-stdin:
+Do not accept input from stdin (redirecting input from /dev/null is not sufficient).
+.TP
+.B \-T, \-\-timeout \fIseconds\fR:
+Only run the command for the given number of seconds, then forcibly kill it.
+.TP
+.B \-m, \-\-memory \fIamount\fR:
+Give the program (and UML instance) access to the requested amount of memory,
+in the same format as expected by UML (e.g. 256M).
+.TP
+.B \-\-uml \fIkernel\fR:
+Use the given UML kernel.
+.SH SEE ALSO
+.BR linux (1)
+.br
+.SH AUTHOR
+UMLBox was written by Gregor Richards.
+.PP
+This manual page was written by Gregor Richards <Richards@codu.org>,
+for the Debian project (and may be used by others).
