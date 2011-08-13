@@ -23,7 +23,6 @@ umlbox-linux: $(LINUX)/linux
 	ln -f $(LINUX)/linux umlbox-linux || cp -f $(LINUX)/linux umlbox-linux
 
 $(LINUX)/linux: $(LINUX)/.config
-	-$(STRIP) umlboxinit/init
 	cd $(LINUX) && $(MAKE) ARCH=um
 
 $(LINUX)/.config: umlbox-config
