@@ -1,5 +1,14 @@
 umlbox is a UML-based (UserMode Linux-based) solution for sandboxing
 applications.
 
-To build it, you must first extract Linux into a subdirectory, e.g.
-umlbox/linux-3.0.1. The Makefile indicates which version of Linux is required.
+You can use any UML kernel which supports the initrd.gz and hostfs filesystems
+to run UMLBox. On Debian, the user-mode-linux package includes such a kernel.
+Alternatively, you may extract Linux 3.0.1 umlbox/linux-3.0.1, and a suitable
+kernel will be built for you. Other versions of Linux should work as well, add
+the flag LINUX=<dir> to your `make` line to use another version.
+
+Use `make` or `make all` to build umlbox and an included kernel. Use
+`make nokernel` to build only the non-kernel components, to use another UML
+kernel.  In either case, `make install` installs umlbox (ignore error output if
+you're not installing the kernel), and you may use
+`make install PREFIX=<some prefix>` to install to a custom prefix.

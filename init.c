@@ -33,7 +33,7 @@
 do { \
     (_o) = (_f) _a; \
     if ((_o) == (_b)) { \
-        perror(#_f); \
+        perror(#_f #_a); \
         crash(); \
     } \
 } while(0)
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     SF(tmpi, mknod, -1, ("/ubda", 0644 | S_IFBLK, makedev(98, 0)));
 
     /* and a root */
-    SF(tmpi, mkdir, -1, ("/root", 0777));
+    SF(tmpi, mkdir, -1, ("/host", 0777));
 
     /* read our configuration from it */
     SF(ubda, open, -1, ("/ubda", O_RDONLY));
@@ -191,7 +191,7 @@ void handleMount(char **saveptr)
 
     /* make the target directory */
     SF(rtarget, malloc, NULL, (strlen(target) + 7));
-    sprintf(rtarget, "/root/%s", target);
+    sprintf(rtarget, "/host/%s", target);
     mkdirP(rtarget);
 
     /* then mount it */
@@ -223,7 +223,7 @@ void handleHostMount(char **saveptr)
 
     /* make the guest directory */
     SF(rguest, malloc, NULL, (strlen(guest) + 7));
-    sprintf(rguest, "/root/%s", guest);
+    sprintf(rguest, "/host/%s", guest);
     mkdirP(rguest);
 
     /* then mount it */
@@ -256,8 +256,8 @@ void handleRun(char **saveptr)
         }
 
         /* chroot */
-        chdir("/root");
-        chroot("/root");
+        chdir("/host");
+        chroot("/host");
         chdir(dir);
 
         /* randomize GID/UID */
@@ -308,7 +308,7 @@ void handleInput(char **saveptr)
     SF(file, strtok_r, NULL, (NULL, "\n", saveptr));
 
     SF(rfile, malloc, NULL, (strlen(file) + 7));
-    sprintf(rfile, "/root/%s", file);
+    sprintf(rfile, "/host/%s", file);
 
     if (childI != 0) close(childI);
     SF(childI, open, -1, (rfile, O_RDONLY));
@@ -321,7 +321,7 @@ void handleOutput(char **saveptr)
     SF(file, strtok_r, NULL, (NULL, "\n", saveptr));
 
     SF(rfile, malloc, NULL, (strlen(file) + 7));
-    sprintf(rfile, "/root/%s", file);
+    sprintf(rfile, "/host/%s", file);
 
     if (childO != 1) close(childO);
     SF(childO, open, -1, (rfile, O_WRONLY|O_CREAT, 0666));
