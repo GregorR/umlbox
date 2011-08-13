@@ -155,9 +155,9 @@ bindir = os.path.dirname(sys.argv[0])
 pid = str(os.getpid())
 uid = str(os.getuid())
 gid = str(os.getgid())
-isatty = "0"
+istty = False
 if os.isatty(1):
-    isatty = "1"
+    istty = True
 conf = "/tmp/" + pid + ".conf"
 
 # find UML
@@ -183,24 +183,28 @@ if not os.path.exists(initrd):
 if verbose:
     print "Found initrd " + initrd
 
+# make the basic setup
+confs = ("setgid " + gid + "\n" +
+         "setuid " + uid + "\n")
+if not istty:
+    confs += "ttyraw\n"
+
 # figure out the hostmount configuration
 mountPaths = mounts.keys()
 mountPaths.sort(lambda x,y: cmp(len(x), len(y)))
 
 # and make the hostmount commands
-hostmounts = ""
 for path in mountPaths:
     mount = mounts[path]
-    hostmounts += "hostmount " + mount.rrw + " " + mount.host + " " + mount.guest + "\n"
+    confs += "hostmount " + mount.rrw + " " + mount.host + " " + mount.guest + "\n"
 
 # Make the configuration file
 conff = open(conf, "w")
-confs = (hostmounts +
-         "mount tmpfs /tmp tmpfs\n" +
-         "mount proc /proc proc\n" +
-         "mount sysfs /sys sysfs\n" +
-         "timeout " + str(timeout) + "\n" +
-         "run " + cwd + " " + " ".join(cmd) + " | cat\n")
+confs += ("mount tmpfs /tmp tmpfs\n" +
+          "mount proc /proc proc\n" +
+          "mount sysfs /sys sysfs\n" +
+          "timeout " + str(timeout) + "\n" +
+          "run " + cwd + " " + " ".join(cmd) + " | cat\n")
 conff.write(confs)
 conff.close()
 if verbose:
@@ -215,7 +219,7 @@ if initStdout:
     stdoutws = "fd:1"
 
 cmd = [linux, "initrd=" + initrd, "ubda=" + conf, "mem=" + memory, "con1=" +
-       childStdin + ",fd:3", "con=null," + stdoutws, uid, gid, isatty]
+       childStdin + ",fd:3", "con=null," + stdoutws]
 if verbose:
     print "Command: " + str(cmd)
 

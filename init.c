@@ -15,8 +15,10 @@
  */
 
 #define _BSD_SOURCE
+#define _POSIX_SOURCE
 
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,9 +27,11 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <linux/reboot.h>
+#include <sys/reboot.h>
 
 #define SF(_o, _f, _b, _a) \
 do { \
@@ -45,11 +49,14 @@ void handleRun(char **saveptr);
 void handleTimeout(char **saveptr);
 void handleInput(char **saveptr);
 void handleOutput(char **saveptr);
+void handleSetID(int u, char **saveptr);
+void handleTTYRaw(char **saveptr);
 void crash();
 
 unsigned int timeout = 0;
 int childI = 0, childO = 1;
-uid_t childUID = 0, childGID = 0;
+uid_t childUID = 0;
+gid_t childGID = 0;
 
 int main(int argc, char **argv)
 {
@@ -58,19 +65,12 @@ int main(int argc, char **argv)
     char *buf, *line, *word, *lsaveptr, *wsaveptr;
     size_t bufsz, bufused;
     ssize_t rd;
-    struct termios termios_p;
 
     srandom(time(NULL));
 
     /* figure out the child's UID and GID */
     if (argc > 1)
         childUID = atoi(argv[1]);
-    if (childUID == 0)
-        childUID = random() % 995000 + 5000;
-    if (argc > 2)
-        childGID = atoi(argv[2]);
-    if (childGID == 0)
-        childGID = random() % 995000 + 5000;
 
     /* try to get console */
     mknod("/console", 0644 | S_IFCHR, makedev(5, 1));
@@ -84,13 +84,6 @@ int main(int argc, char **argv)
     mknod("/tty1", 0644 | S_IFCHR, makedev(4, 1));
     childI = open("/tty1", O_RDONLY);
     childO = open("/tty1", O_WRONLY);
-
-    /* make the TTY raw if it's supposed to be (argv[3] == isatty) */
-    if (argc > 3 && !strcmp(argv[3], "0")) {
-        SF(tmpi, tcgetattr, -1, (childO, &termios_p));
-        cfmakeraw(&termios_p);
-        SF(tmpi, tcsetattr, -1, (childO, TCSANOW, &termios_p));
-    }
 
     printf("\n----------\nUMLBox starting.\n----------\n\n");
 
@@ -124,32 +117,42 @@ int main(int argc, char **argv)
 
     /* now perform the commands */
     lsaveptr = NULL;
-    while (line = strtok_r(lsaveptr ? NULL : buf, "\n", &lsaveptr)) {
+    while ((line = strtok_r(lsaveptr ? NULL : buf, "\n", &lsaveptr))) {
         fprintf(stderr, "$ %s\n", line);
         word = strtok_r(line, " ", &wsaveptr);
         if (word == NULL || word[0] == '#') continue;
-        if (!strcmp(word, "mount")) {
+#define CMD(x) if (!strcmp(word, #x))
+        CMD(mount) {
             handleMount(&wsaveptr);
-        } else if (!strcmp(word, "hostmount")) {
+        } else CMD(hostmount) {
             handleHostMount(&wsaveptr);
-        } else if (!strcmp(word, "run")) {
+        } else CMD(run) {
             handleRun(&wsaveptr);
-        } else if (!strcmp(word, "timeout")) {
+        } else CMD(timeout) {
             handleTimeout(&wsaveptr);
-        } else if (!strcmp(word, "input")) {
+        } else CMD(input) {
             handleInput(&wsaveptr);
-        } else if (!strcmp(word, "output")) {
+        } else CMD(output) {
             handleOutput(&wsaveptr);
+        } else CMD(setuid) {
+            handleSetID(1, &wsaveptr);
+        } else CMD(setgid) {
+            handleSetID(0, &wsaveptr);
+        } else CMD(ttyraw) {
+            handleTTYRaw(&wsaveptr);
         } else {
             fprintf(stderr, "Unrecognized command %s\n", word);
             crash();
         }
+#undef CMD
     }
 
     fprintf(stderr, "\n----------\nUMLBox is terminating.\n----------\n\n");
 
     sync();
     reboot(LINUX_REBOOT_CMD_POWER_OFF);
+
+    return 0;
 }
 
 void mkdirP(char *dir)
@@ -163,7 +166,7 @@ void mkdirP(char *dir)
     /* then work through the dir */
     SF(tdir, strdup, NULL, (dir));
     saveptr = NULL;
-    while (elem = strtok_r(saveptr ? NULL : tdir, "/", &saveptr)) {
+    while ((elem = strtok_r(saveptr ? NULL : tdir, "/", &saveptr))) {
         if (elem[0]) {
             /* best effort mkdir */
             mkdir(elem, 0777);
@@ -261,6 +264,10 @@ void handleRun(char **saveptr)
         chdir(dir);
 
         /* randomize GID/UID */
+        if (childUID == 0)
+            childUID = random() % 995000 + 5000;
+        if (childGID == 0)
+            childGID = random() % 995000 + 5000;
         SF(tmpi, setgid, -1, (childGID));
         SF(tmpi, setuid, -1, (childUID));
 
@@ -326,6 +333,29 @@ void handleOutput(char **saveptr)
     if (childO != 1) close(childO);
     SF(childO, open, -1, (rfile, O_WRONLY|O_CREAT, 0666));
     free(rfile);
+}
+
+void handleSetID(int u, char **saveptr)
+{
+    char *ids;
+    uid_t id;
+    SF(ids, strtok_r, NULL, (NULL, "\n", saveptr));
+    id = atoi(ids);
+
+    if (u) {
+        childUID = id;
+    } else {
+        childGID = (gid_t) id;
+    }
+}
+
+void handleTTYRaw(char **saveptr)
+{
+    struct termios termios_p;
+    int tmpi;
+    SF(tmpi, tcgetattr, -1, (childO, &termios_p));
+    cfmakeraw(&termios_p);
+    SF(tmpi, tcsetattr, -1, (childO, TCSANOW, &termios_p));
 }
 
 void crash()
