@@ -2,6 +2,7 @@ CC=gcc
 CFLAGS=-O3
 LDFLAGS=
 STATICFLAGS=-static
+STRIP=strip
 LINUX=linux-3.0.1
 DESTDIR=
 PREFIX=/usr
@@ -15,13 +16,14 @@ umlbox-initrd.gz: init
 
 init: init.c
 	$(CC) $(CFLAGS) $(LDFLAGS) $(STATICFLAGS) init.c -o init
+	$(STRIP) init
 
 umlbox-linux: $(LINUX)/linux
-	-strip $(LINUX)/linux
+	-$(STRIP) $(LINUX)/linux
 	ln -f $(LINUX)/linux umlbox-linux || cp -f $(LINUX)/linux umlbox-linux
 
 $(LINUX)/linux: $(LINUX)/.config
-	-strip umlboxinit/init
+	-$(STRIP) umlboxinit/init
 	cd $(LINUX) && $(MAKE) ARCH=um
 
 $(LINUX)/.config: umlbox-config
