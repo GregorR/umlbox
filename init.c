@@ -211,7 +211,7 @@ void handleHostMount(char **saveptr)
     SF(guest, strtok_r, NULL, (NULL, " ", saveptr));
 
     /* figure out the flags */
-    flags = 0;
+    flags = MS_NOSUID;
     if (!strcmp(rrw, "r")) {
         flags |= MS_RDONLY;
     } else if (!strcmp(rrw, "rw")) {
