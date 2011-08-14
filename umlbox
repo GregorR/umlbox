@@ -168,20 +168,20 @@ if linux == False:
     if not os.path.exists(linux):
         linux = "/usr/bin/linux"
     if not os.path.exists(linux):
-        print "Could not find a UML kernel."
+        print("Could not find a UML kernel.")
         sys.exit(1)
 if verbose:
-    print "Found UML kernel " + linux
+    print("Found UML kernel " + linux)
 
 # find initrd
 initrd = bindir + "/../lib/umlbox/umlbox-initrd.gz"
 if not os.path.exists(initrd):
     initrd = bindir + "/umlbox-initrd.gz"
 if not os.path.exists(initrd):
-    print "Could not find umlbox-initrd.gz"
+    print("Could not find umlbox-initrd.gz")
     sys.exit(1)
 if verbose:
-    print "Found initrd " + initrd
+    print("Found initrd " + initrd)
 
 # make the basic setup
 confs = ("setgid " + gid + "\n" +
@@ -190,8 +190,8 @@ if not istty:
     confs += "ttyraw\n"
 
 # figure out the hostmount configuration
-mountPaths = mounts.keys()
-mountPaths.sort(lambda x,y: cmp(len(x), len(y)))
+mountPaths = list(mounts.keys())
+mountPaths.sort(key=lambda x: len(x))
 
 # and make the hostmount commands
 for path in mountPaths:
@@ -208,10 +208,10 @@ confs += ("mount tmpfs /tmp tmpfs\n" +
 conff.write(confs)
 conff.close()
 if verbose:
-    print "Configuration:\n" + confs + "\n"
+    print("Configuration:\n" + confs + "\n")
 
 # open all our new pipes
-nonstdout = os.dup(1) # To keep output
+childStdout = os.dup(1) # To keep output
 devnullw = os.open("/dev/null", os.O_WRONLY)
 stdoutw = devnullw
 stdoutws = "null"
@@ -219,13 +219,14 @@ if initStdout:
     stdoutw = None
     stdoutws = "fd:1"
 
-cmd = [linux, "initrd=" + initrd, "ubda=" + conf, "mem=" + memory, "con1=" +
-       childStdin + ",fd:" + str(nonstdout), "con=null," + stdoutws]
+cmd = [linux, "initrd=" + initrd, "ubda=" + conf, "mem=" + memory,
+    "con1=" + childStdin + ",fd:" + str(childStdout),
+    "con=null," + stdoutws]
 if verbose:
-    print "Command: " + str(cmd)
+    print("Command: " + str(cmd))
 
-subprocess.call(cmd, stdout=stdoutw, stderr=devnullw)
+subprocess.call(cmd, stdout=stdoutw, stderr=devnullw, close_fds=False)
 os.close(devnullw)
-os.close(nonstdout)
+os.close(childStdout)
 
 os.unlink(conf)
