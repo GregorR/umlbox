@@ -210,7 +210,8 @@ conff.close()
 if verbose:
     print "Configuration:\n" + confs + "\n"
 
-os.dup2(1, 3) # To keep output
+# open all our new pipes
+nonstdout = os.dup(1) # To keep output
 devnullw = os.open("/dev/null", os.O_WRONLY)
 stdoutw = devnullw
 stdoutws = "null"
@@ -219,12 +220,12 @@ if initStdout:
     stdoutws = "fd:1"
 
 cmd = [linux, "initrd=" + initrd, "ubda=" + conf, "mem=" + memory, "con1=" +
-       childStdin + ",fd:3", "con=null," + stdoutws]
+       childStdin + ",fd:" + str(nonstdout), "con=null," + stdoutws]
 if verbose:
     print "Command: " + str(cmd)
 
 subprocess.call(cmd, stdout=stdoutw, stderr=devnullw)
 os.close(devnullw)
-os.close(3)
+os.close(nonstdout)
 
 os.unlink(conf)
