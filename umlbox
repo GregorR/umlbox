@@ -81,6 +81,9 @@ while i < len(sys.argv):
         oncmd = True
         cmd.append("'" + arg.replace("'", "'\\\''") + "'")
 
+    elif arg == "--":
+        oncmd = True
+
     elif arg == "-B" or arg == "--base-mounts":
         baseMounts()
 

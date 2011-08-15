@@ -205,7 +205,7 @@ void handleMount(char **saveptr)
 void handleHostMount(char **saveptr)
 {
     int tmpi;
-    char *rrw, *host, *guest, *rguest;
+    char *rrw, *host, *rhost, *guest, *rguest;
     unsigned long flags;
 
     /* get our options */
@@ -224,14 +224,19 @@ void handleHostMount(char **saveptr)
         exit(1);
     }
 
+    /* make the host directory */
+    SF(rhost, malloc, NULL, (strlen(host) + 2));
+    sprintf(rhost, "%s/", host);
+
     /* make the guest directory */
-    SF(rguest, malloc, NULL, (strlen(guest) + 7));
-    sprintf(rguest, "/host/%s", guest);
+    SF(rguest, malloc, NULL, (strlen(guest) + 6));
+    sprintf(rguest, "/host%s", guest);
     mkdirP(rguest);
 
     /* then mount it */
-    SF(tmpi, mount, -1, ("none", rguest, "hostfs", flags, host));
+    SF(tmpi, mount, -1, ("none", rguest, "hostfs", flags, rhost));
     free(rguest);
+    free(rhost);
 }
 
 void handleRun(char **saveptr)
@@ -259,9 +264,10 @@ void handleRun(char **saveptr)
         }
 
         /* chroot */
-        chdir("/host");
-        chroot("/host");
-        chdir(dir);
+        SF(tmpi, chdir, -1, ("/host"));
+        SF(tmpi, chroot, -1, ("/host"));
+        tmpi = chdir(dir);
+        (void) tmpi;
 
         /* randomize GID/UID */
         if (childUID == 0)
@@ -273,8 +279,15 @@ void handleRun(char **saveptr)
 
         /* and run */
         SF(tmpi, system, -1, (cmd));
-        if (WEXITSTATUS(tmpi) == 127)
+        if (WEXITSTATUS(tmpi) == 127) {
             fprintf(stderr, "/bin/sh could not be executed\n");
+            close(0);
+
+            /* attempt to give some debugging output */
+            close(0);
+            tmpi = execl("/bin/sh", "/bin/sh", NULL);
+            perror("/bin/sh");
+        }
         exit(0);
         while (1) sleep(60*60*24);
     }
