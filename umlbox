@@ -203,11 +203,14 @@ for path in mountPaths:
 
 # Make the configuration file
 conff = open(conf, "w")
+ttycat = ""
+if not istty:
+    ttycat = " | cat"
 confs += ("mount tmpfs /tmp tmpfs\n" +
           "mount proc /proc proc\n" +
           "mount sysfs /sys sysfs\n" +
           "timeout " + str(timeout) + "\n" +
-          "run " + cwd + " " + " ".join(cmd) + " | cat\n")
+          "run " + cwd + " " + " ".join(cmd) + ttycat + "\n")
 conff.write(confs)
 conff.close()
 if verbose:
