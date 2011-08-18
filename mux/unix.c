@@ -129,7 +129,6 @@ static Socket *unixcConnect(Socket *self)
 
     tmpi = connect(fd, sockc->addr, sockc->addrlen);
     if (tmpi < 0) {
-        fprintf(stderr, "D'aww, I failed to connect to %s! :(\n", ((struct sockaddr_un *) sockc->addr)->sun_path);
         close(fd);
         return NULL;
     }

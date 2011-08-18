@@ -110,6 +110,7 @@ static int stdinSelectedR(Socket *self, int fd)
             csock = sock->vtbl->connect(sock);
             if (!csock) {
                 fprintf(stderr, "Failed to connect to socket %d.\n", id);
+                muxCommand(stdoutSocket, 'd', cid);
                 return 0;
             }
             registerSocket(csock, &cid);
@@ -125,11 +126,13 @@ static int stdinSelectedR(Socket *self, int fd)
             /* read it in */
             if (read(0, buf, ct) != ct) {
                 free(buf);
+                muxCommand(stdoutSocket, 'd', id);
                 fprintf(stderr, "Short send!\n");
                 return 0;
             }
             if (!sock->vtbl->write) {
                 free(buf);
+                muxCommand(stdoutSocket, 'd', id);
                 fprintf(stderr, "Send to unwritable socket %d!\n", id);
                 return 0;
             }
