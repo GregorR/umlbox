@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
 #include <netinet/ip.h>
 
 #include "muxsocket.h"
@@ -178,7 +179,6 @@ static Socket *newTCP4C(char **saveptr)
 {
     SocketTCP4C *ret;
     char *hosts, *ports;
-    int tmpi;
 
     /* get the host and port */
     hosts = strtok_r(NULL, ":", saveptr);
@@ -193,6 +193,7 @@ static Socket *newTCP4C(char **saveptr)
 #ifndef STATIC_BUILD /* no getaddrinfo in static */
     {
         struct addrinfo hints, *ai;
+        int tmpi;
         memset(&hints, 0, sizeof(hints));
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;

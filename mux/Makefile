@@ -6,7 +6,7 @@ STRIP=strip
 DESTDIR=
 PREFIX=/usr
 
-OBJS=mux.o muxsocket.o muxstdio.o tcp4.o
+OBJS=mux.o muxsocket.o muxstdio.o tcp4.o unix.o
 SOBJS=$(OBJS:.o=-static.o)
 
 all: umlbox-mudem mudem-static

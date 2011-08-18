@@ -87,7 +87,7 @@ static void stdinShouldSelect(Socket *self, int *r, int *w)
 static int stdinSelectedR(Socket *self, int fd)
 {
     char command;
-    int commandi, id, cid;
+    int id, cid;
     ssize_t ct;
     Socket *sock, *csock;
     char *buf;
@@ -103,9 +103,15 @@ static int stdinSelectedR(Socket *self, int fd)
     switch (command) {
         case 'c':
             cid = getint();
-            if (!sock->vtbl->connect) return 0;
+            if (!sock->vtbl->connect) {
+                fprintf(stderr, "Received a connection request to unconnectable socket %d!\n", id);
+                return 0;
+            }
             csock = sock->vtbl->connect(sock);
-            if (!csock) return 0;
+            if (!csock) {
+                fprintf(stderr, "Failed to connect to socket %d.\n", id);
+                return 0;
+            }
             registerSocket(csock, &cid);
             break;
 
@@ -119,12 +125,15 @@ static int stdinSelectedR(Socket *self, int fd)
             /* read it in */
             if (read(0, buf, ct) != ct) {
                 free(buf);
+                fprintf(stderr, "Short send!\n");
                 return 0;
             }
             if (!sock->vtbl->write) {
                 free(buf);
+                fprintf(stderr, "Send to unwritable socket %d!\n", id);
                 return 0;
             }
+            fprintf(stderr, "Sending %d bytes to %d\n", (int) ct, (int) id);
             sock->vtbl->write(sock, buf, ct);
             free(buf);
             break;

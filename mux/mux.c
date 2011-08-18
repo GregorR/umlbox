@@ -26,6 +26,7 @@
 
 #include "muxsocket.h"
 #include "tcp4.h"
+#include "unix.h"
 
 void mapSet(struct Buffer_int *buf, int from, int to)
 {
@@ -53,6 +54,7 @@ int main(int argc, char **argv)
     /* initialize everything */
     initSockets(preferredId);
     initTCP4();
+    initUNIX();
 
     /* now create every socket */
     for (i = 2; i < argc; i++) {
