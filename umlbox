@@ -32,12 +32,15 @@ class Mount:
 
 # the basic, predefined mounts
 def baseMounts():
-    for m in ["/usr", "/bin", "/lib", "/lib32", "/lib64", "/etc/alternatives", "/dev"]:
+    for m in ["/usr", "/bin", "/sbin", "/lib", "/lib32", "/lib64", "/etc/alternatives", "/dev"]:
         if os.path.isdir(m):
             mounts[m] = Mount("r", m, m)
 
 # kernel
 linux = False
+
+# mudem
+mudem = False
 
 # child's cwd
 cwd = os.getcwd()
@@ -57,6 +60,11 @@ timeout = 0
 # (optional) memory
 memory = "256M"
 
+# (optional) X11? Port forwarding?
+x11 = False
+mudemHost = []
+mudemGuest = []
+
 def usage():
     print("Use: umlbox [options] <command>\n" +
           "Options:\n" +
@@ -66,10 +74,16 @@ def usage():
           "\t--cwd <dir>: Set cwd in guest to <dir>.\n" +
           "\t--no-cwd: Set cwd in guest to /.\n" +
           "\t--copy-cwd: Copy the host cwd (the default).\n" +
+          "\t-L<hport>:<gport>: Forward local port hport into the UMLBox on\n" +
+          "\t                   port gport.\n" +
+          "\t-R<gport>:<host>:<hport>: Forward port gport out of the UMLBox to\n" +
+          "\t                          the given host on port hport.\n" +
+          "\t-X: Enable X11 forwarding.\n" +
           "\t-n: Detach from stdin (< /dev/null will not work!).\n" +
           "\t-T <timeout>: Set a timeout.\n" +
           "\t-m <memory>: Set the memory limit (default 256M).\n" +
           "\t--uml <kernel>: Use the given UML kernel.\n" +
+          "\t--mudem <mudem>: Use the given mutexer/demutexer.\n" +
           "\t-v: Verbose mode.\n" +
           "\t--debug: Keep UML and UMLBox's init's debug output intact.\n")
 
@@ -79,7 +93,7 @@ while i < len(sys.argv):
     arg = sys.argv[i]
     if oncmd or arg[0] != "-":
         oncmd = True
-        cmd.append("'" + arg.replace("'", "'\\\''") + "'")
+        cmd.append("'" + arg.replace("'", "'\\\''").replace("\n", "'\\n'") + "'")
 
     elif arg == "--":
         oncmd = True
@@ -121,6 +135,25 @@ while i < len(sys.argv):
     elif arg == "--copy-cwd":
         cwd = os.getcwd()
 
+    elif arg[0:2] == "-L":
+        parts = arg[2:].split(":")
+        if len(parts) != 2:
+            usage()
+            sys.exit(1)
+        mudemHost.append("tcp4-listen:" + str(int(parts[0])))
+        mudemGuest.append("tcp4:127.0.0.1:" + str(int(parts[1])))
+
+    elif arg[0:2] == "-R":
+        parts = arg[2:].split(":")
+        if len(parts) != 3:
+            usage()
+            sys.exit(1)
+        mudemHost.append("tcp4:" + parts[1] + ":" + str(int(parts[2])))
+        mudemGuest.append("tcp4-listen:" + str(int(parts[0])))
+
+    elif arg == "-X" or arg == "--x11":
+        x11 = True
+
     elif arg == "-n" or arg == "--no-stdin":
         childStdin = "null"
 
@@ -135,6 +168,10 @@ while i < len(sys.argv):
     elif arg == "--uml":
         i += 1
         linux = sys.argv[i]
+
+    elif arg == "--mudem":
+        i += 1
+        mudem = sys.argv[i]
 
     elif arg == "-v" or arg == "--verbose":
         initStdout = True
@@ -154,7 +191,7 @@ if len(cmd) == 0:
     sys.exit(1)
 
 # globals
-bindir = os.path.dirname(sys.argv[0])
+bindir = os.path.abspath(os.path.dirname(sys.argv[0]))
 pid = str(os.getpid())
 uid = str(os.getuid())
 gid = str(os.getgid())
@@ -176,6 +213,12 @@ if linux == False:
 if verbose:
     print("Found UML kernel " + linux)
 
+# find our mudem
+if mudem == False:
+    mudem = bindir + "/umlbox-mudem"
+mudemHost = [mudem, "0"] + mudemHost
+mudemGuest = [mudem, "1"] + mudemGuest
+
 # find initrd
 initrd = bindir + "/../lib/umlbox/umlbox-initrd.gz"
 if not os.path.exists(initrd):
@@ -185,6 +228,11 @@ if not os.path.exists(initrd):
     sys.exit(1)
 if verbose:
     print("Found initrd " + initrd)
+
+# if X11 forwarding is requested, set it up
+if x11:
+    mudemHost.append("unix:/tmp/.X11-unix/X0")
+    mudemGuest.append("tcp4-listen:6000")
 
 # make the basic setup
 confs = ("setgid " + gid + "\n" +
@@ -201,13 +249,32 @@ for path in mountPaths:
     mount = mounts[path]
     confs += "hostmount " + mount.rrw + " " + mount.host + " " + mount.guest + "\n"
 
-# Make the configuration file
-conff = open(conf, "w")
+# Filesystems/basic networking
 confs += ("mount tmpfs /tmp tmpfs\n" +
           "mount proc /proc proc\n" +
           "mount sysfs /sys sysfs\n" +
-          "timeout " + str(timeout) + "\n" +
-          "run " + cwd + " " + " ".join(cmd) + " | cat\n")
+          "run root / /sbin/ifconfig lo 127.0.0.1\n")
+
+# Full networking (if requested)
+if len(mudemGuest) > 2:
+    confs += ("input ../tty2\n" +
+              "output ../tty2\n" +
+              "error ../tty1\n" +
+              "ttyraw\n"
+              "daemon root / " + " ".join(mudemGuest) + "\n")
+
+# Process control
+confs += ("timeout " + str(timeout) + "\n" +
+          "input ../tty1\n" +
+          "output ../tty1\n")
+if not istty:
+    confs += "ttyraw\n"
+
+# And finally, the command
+confs += "run user " + cwd + " " + " ".join(cmd) + " | cat\n"
+
+# Write out the configuration
+conff = open(conf, "w")
 conff.write(confs)
 conff.close()
 if verbose:
@@ -222,8 +289,18 @@ if initStdout:
     stdoutw = None
     stdoutws = "fd:1"
 
+# Our mudem host
+mudemProc = None
+mudemRedir = "null"
+if len(mudemHost) > 2:
+    mudemProc = subprocess.Popen(mudemHost, stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE, close_fds=False)
+    mudemRedir = ("fd:" + str(mudemProc.stdout.fileno()) +
+        ",fd:" + str(mudemProc.stdin.fileno()))
+
 cmd = [linux, "initrd=" + initrd, "ubda=" + conf, "mem=" + memory,
     "con1=" + childStdin + ",fd:" + str(childStdout),
+    "con2=" + mudemRedir,
     "con=null," + stdoutws]
 if verbose:
     print("Command: " + str(cmd))
@@ -231,5 +308,8 @@ if verbose:
 subprocess.call(cmd, stdout=stdoutw, stderr=devnullw, close_fds=False)
 os.close(devnullw)
 os.close(childStdout)
+
+if mudemProc != None:
+    mudemProc.terminate()
 
 os.unlink(conf)

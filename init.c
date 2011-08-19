@@ -45,16 +45,17 @@ do { \
 void mkdirP(char *dir);
 void handleMount(char **saveptr);
 void handleHostMount(char **saveptr);
-void handleRun(char **saveptr);
+void handleRun(int daemon, char **saveptr);
 void handleTimeout(char **saveptr);
 void handleInput(char **saveptr);
 void handleOutput(char **saveptr);
+void handleError(char **saveptr);
 void handleSetID(int u, char **saveptr);
 void handleTTYRaw(char **saveptr);
 void crash();
 
 unsigned int timeout = 0;
-int childI = 0, childO = 1;
+int childI = 0, childO = 1, childE = 2;
 uid_t childUID = 0;
 gid_t childGID = 0;
 
@@ -80,10 +81,13 @@ int main(int argc, char **argv)
     if (o != 1) dup2(o, 1);
     if (o != 2) dup2(o, 2);
 
-    /* and tty1 */
-    mknod("/tty1", 0644 | S_IFCHR, makedev(4, 1));
-    childI = open("/tty1", O_RDONLY);
-    childO = open("/tty1", O_WRONLY);
+    /* and tty1-15 */
+    SF(buf, malloc, NULL, (8));
+    for (i = 1; i < 16; i++) {
+        sprintf(buf, "/tty%d", i);
+        mknod(buf, 0644 | S_IFCHR, makedev(4, i));
+    }
+    free(buf);
 
     printf("\n----------\nUMLBox starting.\n----------\n\n");
 
@@ -127,13 +131,17 @@ int main(int argc, char **argv)
         } else CMD(hostmount) {
             handleHostMount(&wsaveptr);
         } else CMD(run) {
-            handleRun(&wsaveptr);
+            handleRun(0, &wsaveptr);
+        } else CMD(daemon) {
+            handleRun(1, &wsaveptr);
         } else CMD(timeout) {
             handleTimeout(&wsaveptr);
         } else CMD(input) {
             handleInput(&wsaveptr);
         } else CMD(output) {
             handleOutput(&wsaveptr);
+        } else CMD(error) {
+            handleError(&wsaveptr);
         } else CMD(setuid) {
             handleSetID(1, &wsaveptr);
         } else CMD(setgid) {
@@ -239,10 +247,22 @@ void handleHostMount(char **saveptr)
     free(rhost);
 }
 
-void handleRun(char **saveptr)
+void handleRun(int daemon, char **saveptr)
 {
-    char *dir, *cmd;
+    char *ru, *dir, *cmd;
     pid_t pid, spid;
+    int user;
+
+    /* root or user? */
+    SF(ru, strtok_r, NULL, (NULL, " ", saveptr));
+    if (!strcmp(ru, "root")) {
+        user = 0;
+    } else if (!strcmp(ru, "user")) {
+        user = 1;
+    } else {
+        fprintf(stderr, "Use: run <root|user> <dir> <cmd>\n");
+        exit(1);
+    }
 
     /* read the dir */
     SF(dir, strtok_r, NULL, (NULL, " ", saveptr));
@@ -258,10 +278,8 @@ void handleRun(char **saveptr)
 
         /* I/O redirection */
         if (childI != 0) dup2(childI, 0);
-        if (childO != 1) {
-            dup2(childO, 1);
-            dup2(childO, 2);
-        }
+        if (childO != 1) dup2(childO, 1);
+        if (childE != 2) dup2(childE, 2);
 
         /* chroot */
         SF(tmpi, chdir, -1, ("/host"));
@@ -270,12 +288,14 @@ void handleRun(char **saveptr)
         (void) tmpi;
 
         /* randomize GID/UID */
-        if (childUID == 0)
-            childUID = random() % 995000 + 5000;
-        if (childGID == 0)
-            childGID = random() % 995000 + 5000;
-        SF(tmpi, setgid, -1, (childGID));
-        SF(tmpi, setuid, -1, (childUID));
+        if (user) {
+            if (childUID == 0)
+                childUID = random() % 995000 + 5000;
+            if (childGID == 0)
+                childGID = random() % 995000 + 5000;
+            SF(tmpi, setgid, -1, (childGID));
+            SF(tmpi, setuid, -1, (childUID));
+        }
 
         /* and run */
         SF(tmpi, system, -1, (cmd));
@@ -292,24 +312,26 @@ void handleRun(char **saveptr)
         while (1) sleep(60*60*24);
     }
 
-    /* as well as a pid to do the timeout */
-    if (timeout != 0) {
-        SF(spid, fork, -1, ());
-        if (spid == 0) {
-            sleep(timeout);
-            exit(0);
-            while (1) sleep(60*60*24);
-        }
+    if (!daemon) {
+        /* as well as a pid to do the timeout */
+        if (timeout != 0) {
+            SF(spid, fork, -1, ());
+            if (spid == 0) {
+                sleep(timeout);
+                exit(0);
+                while (1) sleep(60*60*24);
+            }
 
-        if (wait(NULL) == spid) {
-            /* kill it */
-            kill(pid, SIGKILL);
+            if (wait(NULL) == spid) {
+                /* kill it */
+                kill(pid, SIGKILL);
+                waitpid(pid, NULL, 0);
+            }
+
+        } else {
             waitpid(pid, NULL, 0);
+
         }
-
-    } else {
-        waitpid(pid, NULL, 0);
-
     }
 }
 
@@ -344,7 +366,22 @@ void handleOutput(char **saveptr)
     sprintf(rfile, "/host/%s", file);
 
     if (childO != 1) close(childO);
+    if (childE != 2) close(childE);
     SF(childO, open, -1, (rfile, O_WRONLY|O_CREAT, 0666));
+    free(rfile);
+    SF(childE, dup, -1, (childO));
+}
+
+void handleError(char **saveptr)
+{
+    char *file, *rfile;
+    SF(file, strtok_r, NULL, (NULL, "\n", saveptr));
+
+    SF(rfile, malloc, NULL, (strlen(file) + 7));
+    sprintf(rfile, "/host/%s", file);
+
+    if (childE != 2) close(childE);
+    SF(childE, open, -1, (rfile, O_WRONLY|O_CREAT, 0666));
     free(rfile);
 }
 
@@ -366,6 +403,13 @@ void handleTTYRaw(char **saveptr)
 {
     struct termios termios_p;
     int tmpi;
+
+    /* input ... */
+    SF(tmpi, tcgetattr, -1, (childI, &termios_p));
+    cfmakeraw(&termios_p);
+    SF(tmpi, tcsetattr, -1, (childI, TCSANOW, &termios_p));
+
+    /* output ... */
     SF(tmpi, tcgetattr, -1, (childO, &termios_p));
     cfmakeraw(&termios_p);
     SF(tmpi, tcsetattr, -1, (childO, TCSANOW, &termios_p));

@@ -9,7 +9,7 @@ PREFIX=/usr
 
 all: nokernel umlbox-linux
 
-nokernel: umlbox-initrd.gz
+nokernel: umlbox-initrd.gz umlbox-mudem
 
 umlbox-initrd.gz: init
 	echo init | cpio -H newc -o | gzip -9c > umlbox-initrd.gz
@@ -17,6 +17,13 @@ umlbox-initrd.gz: init
 init: init.c
 	$(CC) $(CFLAGS) $(LDFLAGS) $(STATICFLAGS) init.c -o init
 	$(STRIP) init
+
+umlbox-mudem: mudem/umlbox-mudem
+	-$(STRIP) mudem/umlbox-mudem
+	ln -f mudem/umlbox-mudem umlbox-mudem || cp -f mudem/umlbox-mudem umlbox-mudem
+
+mudem/umlbox-mudem: mudem/*.c mudem/*.h
+	cd mudem && $(MAKE)
 
 umlbox-linux: $(LINUX)/linux
 	-$(STRIP) $(LINUX)/linux
@@ -30,6 +37,7 @@ $(LINUX)/.config: umlbox-config
 
 clean:
 	rm -f umlbox-linux init umlbox-initrd.gz
+	cd mudem && $(MAKE) clean
 	-cd $(LINUX) && $(MAKE) ARCH=um clean
 
 mrproper: clean

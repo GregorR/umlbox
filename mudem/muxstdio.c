@@ -106,7 +106,7 @@ static int stdinSelectedR(Socket *self, int fd)
     char *buf;
 
     if (readAll(0, &command, 1) != 1) {
-        fprintf(stderr, "Critical error!\n");
+        fprintf(stderr, "Critical error! Lost stdin!\n");
         return 1;
     }
     id = getint();
