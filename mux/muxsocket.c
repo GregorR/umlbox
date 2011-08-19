@@ -128,7 +128,7 @@ int socketWritableSelectedW(Socket *self, int fd)
     }
 
     /* move down the remainder */
-    memmove(sockw->wbuf.buf, sockw->wbuf.buf + sockw->wbuf.bufused, sockw->wbuf.bufused - wrote);
+    memmove(sockw->wbuf.buf, sockw->wbuf.buf + wrote, sockw->wbuf.bufused - wrote);
     sockw->wbuf.bufused -= wrote;
 
     return 0;

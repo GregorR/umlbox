@@ -109,14 +109,13 @@ int main(int argc, char **argv)
         for (i = 0; i < nfds; i++) {
             if (FD_ISSET(i, &readfds)) {
                 sock = socketById(readMap.buf[i]);
-                if (sock->vtbl->selectedR(sock, i) != 0) {
+                if (sock && sock->vtbl->selectedR(sock, i) != 0) {
                     freeSocket(sock);
-                    FD_CLR(i, &writefds);
                 }
             }
             if (FD_ISSET(i, &writefds)) {
                 sock = socketById(writeMap.buf[i]);
-                if (sock->vtbl->selectedW(sock, i) != 0) {
+                if (sock && sock->vtbl->selectedW(sock, i) != 0) {
                     freeSocket(sock);
                 }
             }

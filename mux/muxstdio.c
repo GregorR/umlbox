@@ -40,6 +40,19 @@ void muxCommand(Socket *sock, char command, int32_t i)
         sock->vtbl->write(sock, buf, 5);
 }
 
+static ssize_t readAll(int fd, void *buf, size_t count)
+{
+    ssize_t rd, ird;
+    rd = 0;
+    while (rd < count) {
+        ird = read(fd, buf + rd, count - rd);
+        if (ird < 0)
+            return -1;
+        rd += ird;
+    }
+    return rd;
+}
+
 static int32_t getint()
 {
     int32_t val;
@@ -49,7 +62,7 @@ static int32_t getint()
     val = 0;
     for (i = 0; i < 4; i++) {
         val <<= 8;
-        read(0, &c, 1);
+        readAll(0, &c, 1);
         val |= c;
     }
 
@@ -92,7 +105,7 @@ static int stdinSelectedR(Socket *self, int fd)
     Socket *sock, *csock;
     char *buf;
 
-    if (read(0, &command, 1) != 1) {
+    if (readAll(0, &command, 1) != 1) {
         fprintf(stderr, "Critical error!\n");
         return 1;
     }
@@ -124,7 +137,7 @@ static int stdinSelectedR(Socket *self, int fd)
             ct = (size_t) getint();
             SF(buf, malloc, NULL, (ct));
             /* read it in */
-            if (read(0, buf, ct) != ct) {
+            if (readAll(0, buf, ct) != ct) {
                 free(buf);
                 muxCommand(stdoutSocket, 'd', id);
                 fprintf(stderr, "Short send!\n");
@@ -136,7 +149,6 @@ static int stdinSelectedR(Socket *self, int fd)
                 fprintf(stderr, "Send to unwritable socket %d!\n", id);
                 return 0;
             }
-            fprintf(stderr, "Sending %d bytes to %d\n", (int) ct, (int) id);
             sock->vtbl->write(sock, buf, ct);
             free(buf);
             break;
