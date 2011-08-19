@@ -237,8 +237,10 @@ if x11:
 # make the basic setup
 confs = ("setgid " + gid + "\n" +
          "setuid " + uid + "\n")
+ttycat = ""
 if not istty:
     confs += "ttyraw\n"
+    ttycat = " | cat"
 
 # figure out the hostmount configuration
 mountPaths = list(mounts.keys())
@@ -271,7 +273,7 @@ if not istty:
     confs += "ttyraw\n"
 
 # And finally, the command
-confs += "run user " + cwd + " " + " ".join(cmd) + " | cat\n"
+confs += "run user " + cwd + " " + " ".join(cmd) + ttycat + "\n"
 
 # Write out the configuration
 conff = open(conf, "w")
