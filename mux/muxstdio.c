@@ -46,7 +46,7 @@ static ssize_t readAll(int fd, void *buf, size_t count)
     rd = 0;
     while (rd < count) {
         ird = read(fd, buf + rd, count - rd);
-        if (ird < 0)
+        if (ird <= 0)
             return -1;
         rd += ird;
     }
