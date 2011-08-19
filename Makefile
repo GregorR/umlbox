@@ -47,5 +47,6 @@ install:
 	install -D umlbox $(DESTDIR)$(PREFIX)/bin/umlbox
 	install -D umlbox-mudem $(DESTDIR)$(PREFIX)/bin/umlbox-mudem
 	install -D -m 0644 umlbox.1 $(DESTDIR)$(PREFIX)/share/man/man1/umlbox.1
+	install -D -m 0644 umlbox-mudem.1 $(DESTDIR)$(PREFIX)/share/man/man1/umlbox-mudem.1
 	install -D -m 0644 umlbox-initrd.gz $(DESTDIR)$(PREFIX)/lib/umlbox/umlbox-initrd.gz
 	-install -D umlbox-linux $(DESTDIR)$(PREFIX)/bin/umlbox-linux

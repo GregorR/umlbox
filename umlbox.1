@@ -1,4 +1,4 @@
-.TH UMLBOX 1 "August 13, 2011"
+.TH UMLBOX 1 "August 19, 2011"
 .SH NAME
 umlbox \- Sandbox a program in a UML instance
 .SH SYNOPSIS
@@ -38,6 +38,16 @@ Run the program with / as the current working directory.
 .B \-\-copy\-cwd:
 Run the program with the same current working directory as \fBumlbox\fP is
 called with.
+.TP
+.B \-X, \-\-x11:
+Enable X11 forwarding. Note that this feature is only partially implemented,
+and requires considerable effort by the guest to function.
+.TP
+.B \-L\fIhost-port\fB:\fIguest-port\fR:
+Forward the given TCP/IPv4 port from the host to the given port on the guest.
+.TP
+.B \-R\fIguest-port\fB:\fIhost\fB:\fIhost-port\fR:
+Forward the given TCP/IPv4 port from the guest to the given port on the given host.
 .TP
 .B \-n, \-\-no\-stdin:
 Do not accept input from stdin (redirecting input from /dev/null is not sufficient).

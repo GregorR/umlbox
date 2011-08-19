@@ -1,0 +1,42 @@
+.TH UMLBOX-MUDEM 1 "August 19, 2011"
+.SH NAME
+umlbox-mudem \- Multiplexor/demultiplexor for sockets
+.SH SYNOPSIS
+.B umlbox-mudem
+{0|1} \fIsockets\fR...
+.SH DESCRIPTION
+\fBumlbox-mudem\fP multiplexes the specified sockets over stdin and stdout.
+Connecting it to another umlbox-mudem instance allows you to proxy any number
+of sockets over a single link of any kind. The first parameter specifies the
+end of the connection; one end must be 0, the other end must be 1 (this is
+simply to allow socket IDs not to overlap, without synchronization). The rest
+of the parameters specify sockets. Each socket will be connected over the link
+to the corresponding socket on the other end, so you must have the same number
+of arguments on both sides. \fBumlbox-mudem\fP is used by UMLBox to allow
+networking, X11 forwarding, and other features that require sockets, without
+having full network access on the guest.
+.SH SOCKETS
+Sockets are specified as \fIsocket-type\fR\fB:\fR\fIsocket-parameters\fP. Several
+socket types are supported, and each has its own parameter format.
+.TP
+.B tcp4:\fIhost\fB:\fIport\fR
+When a connection request is received, the mudem will connect it to the given
+host on the given port, via TCP/IPv4.
+.TP
+.B tcp4-listen:\fIport\fR
+Listens for a connection on the given port, via TCP/IPv4.
+.TP
+.B unix:\fIpath\fR
+When a connection request is received, the mudem will connect it to the given
+Unix domain socket.
+.TP
+.B unix-listen:\fIpath\fR
+Listens for a connection on the given Unix domain socket.
+.SH SEE ALSO
+.BR umlbox (1)
+.br
+.SH AUTHOR
+UMLBox was written by Gregor Richards.
+.PP
+This manual page was written by Gregor Richards <Richards@codu.org>,
+for the Debian project (and may be used by others).
