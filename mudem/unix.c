@@ -14,7 +14,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define _POSIX_SOURCE
+#define _POSIX_SOURCE /* for strtok_r */
 
 #include <string.h>
 #include <stdio.h>
