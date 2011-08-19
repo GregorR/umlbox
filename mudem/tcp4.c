@@ -179,6 +179,8 @@ static Socket *newTCP4C(char **saveptr)
 {
     SocketTCP4C *ret;
     char *hosts, *ports;
+    struct addrinfo hints, *ai;
+    int tmpi;
 
     /* get the host and port */
     hosts = strtok_r(NULL, ":", saveptr);
@@ -190,31 +192,15 @@ static Socket *newTCP4C(char **saveptr)
     ret = (SocketTCP4C *) newSocket(sizeof(SocketTCP4C));
     ret->ssuper.vtbl = &tcp4cVTbl;
 
-#ifndef STATIC_BUILD /* no getaddrinfo in static */
-    {
-        struct addrinfo hints, *ai;
-        int tmpi;
-        memset(&hints, 0, sizeof(hints));
-        hints.ai_family = AF_INET;
-        hints.ai_socktype = SOCK_STREAM;
-        tmpi = getaddrinfo(hosts, ports, &hints, &ai);
-        if (tmpi != 0)
-            return NULL;
-        ret->addr = ai->ai_addr;
-        ret->addrlen = ai->ai_addrlen;
-    }
-#else
-    {
-        struct sockaddr_in *sin;
-
-        SF(sin, malloc, NULL, (sizeof(struct sockaddr_in)));
-        sin->sin_family = AF_INET;
-        sin->sin_port = htons(atoi(ports));
-        sin->sin_addr.s_addr = inet_addr(hosts);
-        ret->addr = (struct sockaddr *) sin;
-        ret->addrlen = sizeof(struct sockaddr_in);
-    }
-#endif
+    /* get the host */
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    tmpi = getaddrinfo(hosts, ports, &hints, &ai);
+    if (tmpi != 0)
+        return NULL;
+    ret->addr = ai->ai_addr;
+    ret->addrlen = ai->ai_addrlen;
 
     return (Socket *) ret;
 }
