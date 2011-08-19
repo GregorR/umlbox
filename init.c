@@ -14,8 +14,8 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define _BSD_SOURCE
-#define _POSIX_SOURCE
+#define _BSD_SOURCE /* for random, environment stuff, mknod, etc */
+#define _POSIX_SOURCE /* for kill */
 
 #include <fcntl.h>
 #include <signal.h>
@@ -52,6 +52,7 @@ void handleOutput(char **saveptr);
 void handleError(char **saveptr);
 void handleSetID(int u, char **saveptr);
 void handleTTYRaw(char **saveptr);
+void handleEnv(char **saveptr);
 void crash();
 
 unsigned int timeout = 0;
@@ -69,9 +70,14 @@ int main(int argc, char **argv)
 
     srandom(time(NULL));
 
-    /* figure out the child's UID and GID */
-    if (argc > 1)
-        childUID = atoi(argv[1]);
+    /* drop our environment */
+    if (clearenv() != 0) {
+        perror("clearenv");
+        exit(1);
+    }
+    setenv("PATH", "/usr/local/bin:/bin:/usr/bin", 1);
+    setenv("TERM", "linux", 1);
+    setenv("HOME", "/tmp", 1);
 
     /* try to get console */
     mknod("/console", 0644 | S_IFCHR, makedev(5, 1));
@@ -148,6 +154,8 @@ int main(int argc, char **argv)
             handleSetID(0, &wsaveptr);
         } else CMD(ttyraw) {
             handleTTYRaw(&wsaveptr);
+        } else CMD(env) {
+            handleEnv(&wsaveptr);
         } else {
             fprintf(stderr, "Unrecognized command %s\n", word);
             crash();
@@ -413,6 +421,15 @@ void handleTTYRaw(char **saveptr)
     SF(tmpi, tcgetattr, -1, (childO, &termios_p));
     cfmakeraw(&termios_p);
     SF(tmpi, tcsetattr, -1, (childO, TCSANOW, &termios_p));
+}
+
+void handleEnv(char **saveptr)
+{
+    char *var, *val;
+
+    SF(var, strtok_r, NULL, (NULL, " ", saveptr));
+    SF(val, strtok_r, NULL, (NULL, "\n", saveptr));
+    setenv(var, val, 1);
 }
 
 void crash()
