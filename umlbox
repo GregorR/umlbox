@@ -234,6 +234,11 @@ if x11:
     mudemHost.append("unix:/tmp/.X11-unix/X0")
     mudemGuest.append("tcp4-listen:6000")
 
+# sanity check the environment
+if not ("HOME" in os.environ):
+    # UML barfs if it doesn't have a HOME
+    os.environ["HOME"] = "/tmp"
+
 # make the basic setup
 confs = ("setgid " + gid + "\n" +
          "setuid " + uid + "\n")
