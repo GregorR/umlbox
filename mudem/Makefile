@@ -5,7 +5,7 @@ STRIP=strip
 DESTDIR=
 PREFIX=/usr
 
-OBJS=mudem.o muxsocket.o muxstdio.o tcp4.o unix.o
+OBJS=genfd.o mudem.o muxsocket.o muxstdio.o tcp4.o unix.o
 
 all: umlbox-mudem
 

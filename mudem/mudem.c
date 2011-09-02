@@ -25,6 +25,8 @@
 #include <unistd.h>
 
 #include "muxsocket.h"
+
+#include "genfd.h"
 #include "tcp4.h"
 #include "unix.h"
 
@@ -53,6 +55,7 @@ int main(int argc, char **argv)
 
     /* initialize everything */
     initSockets(preferredId);
+    initGenFD();
     initTCP4();
     initUNIX();
 
