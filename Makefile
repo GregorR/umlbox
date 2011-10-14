@@ -36,7 +36,7 @@ $(LINUX)/.config: umlbox-config
 	cp -f umlbox-config $(LINUX)/.config
 
 clean:
-	rm -f umlbox-linux init umlbox-initrd.gz
+	rm -f umlbox-linux init umlbox-initrd.gz umlbox-mudem
 	cd mudem && $(MAKE) clean
 	-cd $(LINUX) && $(MAKE) ARCH=um clean
 
