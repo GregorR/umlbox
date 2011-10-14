@@ -340,6 +340,9 @@ void handleRun(int daemon, char **saveptr)
             waitpid(pid, NULL, 0);
 
         }
+
+        /* flush our output */
+        tcdrain(childO);
     }
 }
 

@@ -45,9 +45,6 @@ mudem = False
 # child's cwd
 cwd = os.getcwd()
 
-# where to get stdin from
-childStdin = "fd:0"
-
 # keep init's stdout?
 initStdout = False
 
@@ -79,7 +76,6 @@ def usage():
           "\t-R<gport>:<host>:<hport>: Forward port gport out of the UMLBox to\n" +
           "\t                          the given host on port hport.\n" +
           "\t-X: Enable X11 forwarding.\n" +
-          "\t-n: Detach from stdin (< /dev/null will not work!).\n" +
           "\t-T <timeout>: Set a timeout.\n" +
           "\t-m <memory>: Set the memory limit (default 256M).\n" +
           "\t--uml <kernel>: Use the given UML kernel.\n" +
@@ -153,9 +149,6 @@ while i < len(sys.argv):
 
     elif arg == "-X" or arg == "--x11":
         x11 = True
-
-    elif arg == "-n" or arg == "--no-stdin":
-        childStdin = "null"
 
     elif arg == "-T" or arg == "--timeout":
         i += 1
@@ -242,10 +235,6 @@ if not ("HOME" in os.environ):
 # make the basic setup
 confs = ("setgid " + gid + "\n" +
          "setuid " + uid + "\n")
-ttycat = ""
-if not istty:
-    confs += "ttyraw\n"
-    ttycat = " | cat"
 
 # figure out the hostmount configuration
 mountPaths = list(mounts.keys())
@@ -274,8 +263,10 @@ if len(mudemGuest) > 2:
 confs += ("timeout " + str(timeout) + "\n" +
           "input ../tty1\n" +
           "output ../tty1\n")
+ttycat = ""
 if not istty:
     confs += "ttyraw\n"
+    ttycat = " | cat"
 
 # And finally, the command
 confs += "run user " + cwd + " " + " ".join(cmd) + ttycat + "\n"
@@ -306,7 +297,7 @@ if len(mudemHost) > 2:
         ",fd:" + str(mudemProc.stdin.fileno()))
 
 cmd = [linux, "initrd=" + initrd, "ubda=" + conf, "mem=" + memory,
-    "con1=" + childStdin + ",fd:" + str(childStdout),
+    "con1=fd:0,fd:" + str(childStdout),
     "con2=" + mudemRedir,
     "con=null," + stdoutws]
 if verbose:
