@@ -302,6 +302,7 @@ cmd = [linux, "initrd=" + initrd, "ubda=" + conf, "mem=" + memory,
     "con=null," + stdoutws]
 if verbose:
     print("Command: " + str(cmd))
+    sys.stdout.flush()
 
 subprocess.call(cmd, stdout=stdoutw, stderr=devnullw, close_fds=False)
 os.close(devnullw)
