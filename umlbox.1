@@ -49,6 +49,9 @@ Forward the given TCP/IPv4 port from the guest to the given port on the given ho
 Enable X11 forwarding. Note that this feature is only partially implemented,
 and requires considerable effort by the guest to function.
 .TP
+.B \-n, \-\-no\-stdin:
+Do not accept input from stdin (redirecting input from /dev/null is not sufficient).
+.TP
 .B \-T, \-\-timeout \fIseconds\fR:
 Only run the command for the given number of seconds, then forcibly kill it.
 .TP
