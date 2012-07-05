@@ -3,7 +3,7 @@ CFLAGS=-g -O3
 LDFLAGS=
 STATICFLAGS=-static
 STRIP=strip
-LINUX=linux-3.0.8
+LINUX=linux-3.4.4
 DESTDIR=
 PREFIX=/usr
 
@@ -33,7 +33,9 @@ $(LINUX)/linux: $(LINUX)/.config
 	cd $(LINUX) && $(MAKE) ARCH=um
 
 $(LINUX)/.config: umlbox-config
-	cp -f umlbox-config $(LINUX)/.config
+	cd $(LINUX) ; $(MAKE) ARCH=um defconfig
+	cat umlbox-config >> $(LINUX)/.config
+	cd $(LINUX) ; yes '' | $(MAKE) ARCH=um oldconfig
 
 clean:
 	rm -f umlbox-linux init umlbox-initrd.gz umlbox-mudem
