@@ -3,7 +3,7 @@ CFLAGS=-g -O3
 LDFLAGS=
 STATICFLAGS=-static
 STRIP=strip
-LINUX=linux-3.4.4
+LINUX=linux-3.6.6
 DESTDIR=
 PREFIX=/usr
 

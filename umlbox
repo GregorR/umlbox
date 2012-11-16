@@ -65,6 +65,9 @@ x11 = False
 mudemHost = []
 mudemGuest = []
 
+# (option) superuser?
+superuser = False
+
 def usage():
     print("Use: umlbox [options] <command>\n" +
           "Options:\n" +
@@ -82,6 +85,7 @@ def usage():
           "\t-n: Detach from stdin (< /dev/null will not work!).\n" +
           "\t-T <timeout>: Set a timeout.\n" +
           "\t-m <memory>: Set the memory limit (default 256M).\n" +
+          "\t-s|--superuser: Run as superuser within uml (negates security benefits).\n" +
           "\t--uml <kernel>: Use the given UML kernel.\n" +
           "\t--mudem <mudem>: Use the given mutexer/demutexer.\n" +
           "\t-v: Verbose mode.\n" +
@@ -164,6 +168,9 @@ while i < len(sys.argv):
     elif arg == "-m" or arg == "--memory":
         i += 1
         memory = sys.argv[i]
+
+    elif arg == "-s" or arg == "--superuser":
+        superuser = True
 
     elif arg == "--uml":
         i += 1
@@ -278,7 +285,10 @@ if not istty:
     confs += "ttyraw\n"
 
 # And finally, the command
-confs += "run user " + cwd + " " + " ".join(cmd) + ttycat + "\n"
+runas = "user"
+if superuser:
+    runas = "root"
+confs += "run " + runas + " " + cwd + " " + " ".join(cmd) + ttycat + "\n"
 
 # Write out the configuration
 conff = open(conf, "w")
