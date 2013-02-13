@@ -312,8 +312,9 @@ mudemRedir = "null"
 if len(mudemHost) > 2:
     mudemProc = subprocess.Popen(mudemHost, stdin=subprocess.PIPE,
         stdout=subprocess.PIPE, close_fds=False)
-    mudemRedir = ("fd:" + str(mudemProc.stdout.fileno()) +
-        ",fd:" + str(mudemProc.stdin.fileno()))
+    # Python opens subprocess pipes with cloexec, so undo that with dup
+    mudemRedir = ("fd:" + str(os.dup(mudemProc.stdout.fileno())) +
+        ",fd:" + str(os.dup(mudemProc.stdin.fileno())))
 
 cmd = [linux, "initrd=" + initrd, "ubda=" + conf, "mem=" + memory,
     "con1=" + childStdin + ",fd:" + str(childStdout),
