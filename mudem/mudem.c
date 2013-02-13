@@ -45,6 +45,7 @@ int main(int argc, char **argv)
     fd_set readfds, writefds;
     int nfds, nsocks, r, w;
     Socket *sock;
+    char ocbuf;
 
     if (argc < 2 || !argv[1][0] || argv[1][1]) {
         fprintf(stderr, "Use: umlbox-mudem {0|1} [sockets...]\n");
@@ -58,6 +59,50 @@ int main(int argc, char **argv)
     initGenFD();
     initTCP4();
     initUNIX();
+
+    /* perform our handshake (A->B->C) */
+    if (preferredId == 1) {
+        struct timeval timeout;
+
+        FD_ZERO(&readfds);
+        FD_ZERO(&writefds);
+        FD_SET(0, &readfds);
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 4000; /* arbitrary */
+
+        /* start by spamming 'A's */
+        while (1) {
+            write(1, "A", 1);
+            SF(tmpi, select, -1, (1, &readfds, NULL, NULL, &timeout));
+            if (tmpi) {
+                ocbuf = '\0';
+                read(0, &ocbuf, 1);
+                if (ocbuf == 'B') break;
+            }
+        }
+
+        /* then finalize with a 'C' */
+        write(1, "C", 1);
+
+    } else {
+        /* start by waiting for an 'A' */
+        while (1) {
+            ocbuf = '\0';
+            read(0, &ocbuf, 1);
+            if (ocbuf == 'A') break;
+        }
+
+        /* then tell them we're here */
+        write(1, "B", 1);
+
+        /* and wait for the 'C' that ends the handshake */
+        while (1) {
+            ocbuf = '\0';
+            read(0, &ocbuf, 1);
+            if (ocbuf == 'C') break;
+        }
+
+    }
 
     /* now create every socket */
     for (i = 2; i < argc; i++) {
