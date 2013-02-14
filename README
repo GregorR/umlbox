@@ -3,10 +3,10 @@ applications.
 
 You can use any UML kernel which supports the initrd.gz and hostfs filesystems
 to run UMLBox. On Debian, the user-mode-linux package includes such a kernel.
-Alternatively, you may extract Linux 3.4.4 to umlbox/linux-3.4.4 (substitute
-for another version in Makefile if you prefer), and a suitable kernel will be
-built for you. Other versions of Linux should work as well, add the flag
-LINUX=<dir> to your `make` line to use another version.
+Alternatively, you may extract Linux 3.7 to umlbox/linux-3.7 (substitute for
+another version in Makefile if you prefer), and a suitable kernel will be built
+for you. Other versions of Linux should work as well, add the flag LINUX=<dir>
+to your `make` line to use another version.
 
 Use `make` or `make all` to build umlbox and an included kernel. Use
 `make nokernel` to build only the non-kernel components, to use another UML
